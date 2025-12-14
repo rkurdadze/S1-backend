@@ -11,13 +11,19 @@ The following guides illustrate how to use some features concretely:
 
 #
 ### Without DockerHub
-#### `docker build -t s1service:v1 .`
+```bash
+  docker build -t s1service:v1 .
+```
 
-#### `docker save -o s1service:v1.tar s1service:v1`
+```bash
+  docker save -o s1service:v1.tar s1service:v1
+```
 
 * use ftp to transfer to the server, then:
 
-#### `docker load -i /var/www/s1service\:v1.tar`
+```bash
+    docker load -i /var/www/s1service\:v1.tar
+```
 
 special symbol in name must be considered, otherwise it wil not find it
 
