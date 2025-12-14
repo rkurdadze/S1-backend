@@ -13,7 +13,7 @@ This repository currently has no other AGENTS files; these instructions apply to
 - Application properties: `src/main/resources/application.properties`.
 - Tests: `src/test/java/ge/studio101/service/S1ServiceApplicationTests.java`.
 
-## Schema Summary (migrations `V1__Initial_schema.sql`, `V2__Orders_and_pricing.sql`)
+## Schema Summary (migrations `V1__Initial_schema.sql`, `V2__Orders_and_pricing.sql`, `V3__Share_links.sql`)
 - Sequences: `color_id_seq`, `inventory_id_seq`, `item_id_seq`, `photo_id_seq`, `size_id_seq`, `user_role_id_seq`, `users_id_seq`.
 - Tables:
   - `item`: `id` (PK, seq), `name` (varchar 200, not null), `description` (varchar 1000), `publish` (boolean, default true), `price` (numeric(12,2) not null, default 0).
@@ -25,6 +25,7 @@ This repository currently has no other AGENTS files; these instructions apply to
   - `users`: `id` (bigint PK, seq), `google_id` (unique, not null), `email` (unique, not null), `name` (nullable), `picture` (text), `role_id` (FK -> user_role, default 3), `image` (bytea).
   - `orders`: `id` (bigserial PK), `user_id` (FK -> users), embedded contact columns (`contact_*`), `delivery_option` (varchar 120), `notes` (varchar 1000), `total` (numeric(12,2) not null), `payment_token` (text), `email_notification` (boolean, default false), `created_at` (timestamptz, default now).
   - `order_items`: `id` (bigserial PK), `order_id` (FK -> orders cascade), `item_id` (FK -> item), `color_id` (FK -> colors), `size_id` (FK -> size), `item_name`/`color_name`/`size_name` (varchar), `quantity` (int not null), `price` (numeric(12,2) not null).
+  - `share_link`: `token` (varchar(36) PK), `platform`/`destination` (varchar 50), `caption`/`url`/`images`/`description` (text), `color_name` (varchar 100), `item_name` (varchar 200), `price` (numeric(12,2)), `item_id` (bigint), `created_at`/`expires_at` (timestamptz), `click_count` (bigint, default 0).
 
 ## File Structure Reference
 All tracked project files (excluding Git metadata) as of this snapshot:
