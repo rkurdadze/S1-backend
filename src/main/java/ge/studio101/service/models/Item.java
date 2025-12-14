@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.math.BigDecimal;
 
 @AllArgsConstructor
 @NoArgsConstructor
@@ -30,6 +31,9 @@ public class Item {
 
     @Column(name = "publish", nullable = false)
     private boolean publish = true;
+
+    @Column(name = "price", precision = 12, scale = 2, nullable = false)
+    private BigDecimal price = BigDecimal.ZERO;
 
     @OneToMany(mappedBy = "item", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Color> colors = new ArrayList<>();

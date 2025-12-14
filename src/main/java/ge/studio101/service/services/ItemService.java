@@ -44,6 +44,9 @@ public class ItemService {
     public ItemDTO save(ItemNewDTO itemNewDTO) {
         log.info("Saving new item: {}", itemNewDTO);
         Item item = itemMapper.toEntity(itemNewDTO);
+        if (item.getPrice() == null) {
+            item.setPrice(java.math.BigDecimal.ZERO);
+        }
         Item savedItem = itemRepository.save(item);
         return itemMapper.toDTO(savedItem);
     }
@@ -58,6 +61,7 @@ public class ItemService {
             existingItem.setName(itemNewDTO.getName());
             existingItem.setDescription(itemNewDTO.getDescription());
             existingItem.setPublish(itemNewDTO.isPublish());
+            existingItem.setPrice(itemNewDTO.getPrice());
             // Сохраняем обновленный элемент
             Item updatedItem = itemRepository.save(existingItem);
 
