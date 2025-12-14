@@ -1,0 +1,105 @@
+####################################
+# macOS
+####################################
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+.Spotlight-V100
+.Trashes
+
+
+####################################
+# Java / JVM
+####################################
+*.class
+*.log
+*.ctxt
+hs_err_pid*
+replay_pid*
+*.pid
+
+
+####################################
+# Maven
+####################################
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+.buildNumber
+
+
+####################################
+# Gradle
+####################################
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+gradle-app.setting
+
+
+####################################
+# Spring Boot
+####################################
+logs/
+*.log
+*.hprof
+*.dump
+*.heapdump
+*.jfr
+spring.log
+
+
+####################################
+# Application secrets
+####################################
+application-local.yml
+application-dev.yml
+application-prod.yml
+application-test.yml
+application-*.properties
+!application-example.yml
+!application-example.properties
+
+
+####################################
+# IDEs / Editors
+####################################
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.settings/
+.project
+.classpath
+
+
+####################################
+# Docker
+####################################
+.env
+.env.*
+docker-compose.override.yml
+*.pid
+
+
+####################################
+# Test reports
+####################################
+/surefire-reports/
+/failsafe-reports/
+
+
+####################################
+# OS / temp
+####################################
+*.swp
+*.swo
+*~
+

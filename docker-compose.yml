@@ -1,0 +1,26 @@
+version: '3'
+
+services:
+  api:
+    image: openjdk:17
+    working_dir: /app
+    container_name: S1Service-v-0.0.1
+    ports:
+      - "4444:4444"
+    volumes:
+      - ./target/S1Service-0.0.1-snapshot.jar:/app/S1Service-0.0.1-snapshot.jar
+      - ./src/main/resources/templates:/app/src/main/resources/templates/
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://studio101.ge:5432/s1?currentSchema=public&charSet=UTF8
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: saadmin
+      SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
+      SPRING_JPA_HIBERNATE_DDL_AUTO: none
+    command: ["java", "-jar", "S1Service-0.0.1-snapshot.jar"]
+    networks:
+      - my-net
+
+networks:
+  my-net:
+    external: true
