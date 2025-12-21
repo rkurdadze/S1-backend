@@ -8,8 +8,12 @@ import ge.studio101.service.models.Color;
 import ge.studio101.service.models.Photo;
 import ge.studio101.service.repositories.ColorRepository;
 import ge.studio101.service.repositories.PhotoRepository;
+import jakarta.annotation.PostConstruct;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.imageio.ImageIO;
@@ -21,16 +25,37 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
 public class PhotoService {
+    private static final Logger log = LoggerFactory.getLogger(PhotoService.class);
     private final ColorRepository colorRepository;
     private final PhotoRepository photoRepository;
     private final PhotoMapper photoMapper;
+
+    @Value("${image.cache.dir}")
+    private String cacheDir;
+
+    private Path cachePath;
+
+    @PostConstruct
+    public void init() {
+        this.cachePath = Paths.get(cacheDir);
+        try {
+            Files.createDirectories(cachePath);
+        } catch (IOException e) {
+            throw new RuntimeException("Could not create cache directory: " + cacheDir, e);
+        }
+    }
+
 
     public List<PhotoDTO> findAll() {
         return photoMapper.toDTOList(photoRepository.findAll());
@@ -46,24 +71,18 @@ public class PhotoService {
         List<Photo> photosToSave = new ArrayList<>();
 
         for (PhotoNewDTO dto : photoNewDTOList) {
-            // Ищем сущность Color по комбинации itemId + colorName
             Color color = colorRepository.findByItemIdAndName(dto.getItemId(), dto.getColorName())
                     .orElseThrow(() -> new EntityNotFoundException(
                             String.format("Цвет '%s' для itemId=%d не найден",
                                     dto.getColorName(), dto.getItemId())));
-
-            // Создаём новую сущность Photo
             Photo photo = new Photo();
             photo.setImage(dto.getImage());
             photo.setColor(color);
-
             photosToSave.add(photo);
         }
 
         try {
-            // Сохраняем все фото одним списком
             List<Photo> savedPhotos = photoRepository.saveAll(photosToSave);
-            // Возвращаем список DTO
             return savedPhotos.stream()
                     .map(photoMapper::toDTO)
                     .collect(Collectors.toList());
@@ -73,30 +92,50 @@ public class PhotoService {
     }
 
     public byte[] getPhotoBinary(Long id, String resolution) throws IOException {
+        String resolutionId = resolution != null ? resolution : "1024";
+        Path resolutionCachePath = cachePath.resolve(resolutionId);
+        Path cachedImagePath = resolutionCachePath.resolve(id + ".jpg");
+
+
+        if (Files.exists(cachedImagePath)) {
+            try {
+                log.info("hit: {}", cachedImagePath.getFileName());
+                return Files.readAllBytes(cachedImagePath);
+            } catch (IOException e) {
+            }
+        }
+
+
         Photo photo = photoRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Photo not found"));
         byte[] imageBytes = photo.getImage();
 
-        int width = 1024; // Значение по умолчанию
-        int height = 1024; // Значение по умолчанию
+        int width = 1024;
+        int height = 1024;
 
         if (resolution != null && !resolution.isEmpty()) {
             try {
-                // Пытаемся преобразовать resolution в число
                 int res = Integer.parseInt(resolution);
                 width = res;
                 height = res;
             } catch (NumberFormatException e) {
-                // Если resolution не число, используем значения по умолчанию
             }
         }
 
-        byte[] resizedImageBytes = resizeAndCompressImage(imageBytes, width, height, 0.8f);
-        if (width<400) {
-            return resizedImageBytes;
+        byte[] processedImageBytes = resizeAndCompressImage(imageBytes, width, height, 0.8f);
+        if (width >= 400) {
+            processedImageBytes = addWatermark(processedImageBytes, "Studio101.ge");
         }
-        return addWatermark(resizedImageBytes, "Studio101.ge");
+
+        try {
+            Files.createDirectories(resolutionCachePath); // Ensure resolution directory exists
+            Files.write(cachedImagePath, processedImageBytes);
+        } catch (IOException e) {
+        }
+
+        return processedImageBytes;
     }
+
 
     private byte[] resizeAndCompressImage(byte[] imageBytes, int maxWidth, int maxHeight, float quality) throws IOException {
         ByteArrayInputStream bais = new ByteArrayInputStream(imageBytes);
@@ -106,36 +145,29 @@ public class PhotoService {
             throw new IOException("Не удалось прочитать изображение");
         }
 
-        // Исправление ориентации перед изменением размера
         originalImage = ImageRoutines.correctOrientation(originalImage, imageBytes);
 
         int originalWidth = originalImage.getWidth();
         int originalHeight = originalImage.getHeight();
 
-        // Определяем, какая сторона меньше
         boolean isWidthSmaller = originalWidth < originalHeight;
 
-        // Если resolution задан, используем его для меньшей стороны
         if (maxWidth > 0 && maxHeight > 0) {
             if (isWidthSmaller) {
-                // Если ширина меньше, масштабируем по ширине
                 double scaleFactor = (double) maxWidth / originalWidth;
                 originalHeight = (int) (originalHeight * scaleFactor);
                 originalWidth = maxWidth;
             } else {
-                // Если высота меньше, масштабируем по высоте
                 double scaleFactor = (double) maxHeight / originalHeight;
                 originalWidth = (int) (originalWidth * scaleFactor);
                 originalHeight = maxHeight;
             }
         }
 
-        // Если изображение уже меньше или равно заданному разрешению, просто сжимаем его
         if (originalWidth <= maxWidth && originalHeight <= maxHeight) {
             return compressImage(originalImage, quality);
         }
 
-        // Создаём новое изображение с изменённым размером
         BufferedImage resizedImage = new BufferedImage(originalWidth, originalHeight, BufferedImage.TYPE_INT_RGB);
         Graphics2D g2d = resizedImage.createGraphics();
         g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
@@ -146,14 +178,13 @@ public class PhotoService {
     }
 
 
-    // Метод для сжатия изображения (JPEG с уменьшенным качеством)
     private byte[] compressImage(BufferedImage image, float quality) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         ImageWriter jpgWriter = ImageIO.getImageWritersByFormatName("jpg").next();
         ImageWriteParam jpgWriteParam = jpgWriter.getDefaultWriteParam();
 
         jpgWriteParam.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
-        jpgWriteParam.setCompressionQuality(quality); // 0.0 = худшее качество, 1.0 = лучшее качество
+        jpgWriteParam.setCompressionQuality(quality);
 
         ImageOutputStream ios = ImageIO.createImageOutputStream(baos);
         jpgWriter.setOutput(ios);
@@ -165,7 +196,6 @@ public class PhotoService {
     }
 
     private byte[] addWatermark(byte[] imageBytes, String watermarkText) throws IOException {
-        // Конвертируем байты в BufferedImage
         ByteArrayInputStream bais = new ByteArrayInputStream(imageBytes);
         BufferedImage originalImage = ImageIO.read(bais);
         bais.close();
@@ -174,35 +204,29 @@ public class PhotoService {
             throw new IllegalArgumentException("Invalid image format");
         }
 
-        // Создаём новое изображение с тем же размером и типом
         BufferedImage watermarkedImage = new BufferedImage(
                 originalImage.getWidth(),
                 originalImage.getHeight(),
-                BufferedImage.TYPE_INT_RGB // Используем TYPE_INT_RGB для JPEG
+                BufferedImage.TYPE_INT_RGB
         );
 
-        // Рисуем оригинальное изображение на новом изображении
         Graphics2D g2d = watermarkedImage.createGraphics();
         g2d.drawImage(originalImage, 0, 0, null);
 
-        // Настройки водяного знака
-        AlphaComposite alphaComposite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.2f); // 20% прозрачности
+        AlphaComposite alphaComposite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.2f);
         g2d.setComposite(alphaComposite);
-        g2d.setColor(java.awt.Color.decode("#FFFFFF")); // Белый цвет
-        g2d.setFont(new Font("Arial", Font.BOLD, Math.max(originalImage.getWidth() / 10, 100))); // Настраиваем размер шрифта
+        g2d.setColor(java.awt.Color.decode("#FFFFFF"));
+        g2d.setFont(new Font("Arial", Font.BOLD, Math.max(originalImage.getWidth() / 10, 100)));
 
-        // Вычисляем позицию (по центру)
         FontMetrics fontMetrics = g2d.getFontMetrics();
         int x = (originalImage.getWidth() - fontMetrics.stringWidth(watermarkText)) / 2;
         int y = originalImage.getHeight() / 2;
 
-        // Рисуем текст водяного знака
         g2d.drawString(watermarkText, x, y);
         g2d.dispose();
 
-        // Конвертируем BufferedImage обратно в байты (в формате JPEG)
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        ImageIO.write(watermarkedImage, "jpg", baos); // Используем "jpg" вместо "png"
+        ImageIO.write(watermarkedImage, "jpg", baos);
         baos.flush();
         byte[] watermarkedBytes = baos.toByteArray();
         baos.close();
@@ -217,6 +241,20 @@ public class PhotoService {
 
         try {
             photoRepository.delete(photo);
+            // Delete cached files across all resolution subdirectories
+            try (Stream<Path> resolutionDirs = Files.list(cachePath)) {
+                resolutionDirs.filter(Files::isDirectory)
+                        .forEach(resDir -> {
+                            Path cachedImageFile = resDir.resolve(id + ".jpg");
+                            if (Files.exists(cachedImageFile)) {
+                                try {
+                                    Files.delete(cachedImageFile);
+                                } catch (IOException e) {
+                                }
+                            }
+                        });
+            } catch (IOException e) {
+            }
         } catch (Exception e) {
             throw new RuntimeException("Ошибка при удалении фото: " + e.getMessage(), e);
         }

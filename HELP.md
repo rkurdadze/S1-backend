@@ -27,7 +27,28 @@ The following guides illustrate how to use some features concretely:
 
 special symbol in name must be considered, otherwise it wil not find it
 
-#### `docker run -d -e "SPRING_DATASOURCE_URL=jdbc:postgresql://studio101.ge:5432/s1?currentSchema=public&charSet=UTF8" -e SPRING_DATASOURCE_USERNAME=postgres -e SPRING_DATASOURCE_PASSWORD=saadmin -e SERVER_SSL_ENABLED=true -e SERVER_SSL_KEY_STORE=/app/keystore.p12 -e SERVER_SSL_KEY_STORE_PASSWORD=123456 -e SERVER_SSL_KEY_STORE_TYPE=PKCS12 -p 4444:4444 --restart always --name s1service s1service:v1`
+## Запуск сервиса через Docker
+
+```bash
+  docker run -d \
+  -v /var/www/studio101/cache:/var/www/studio101/cache \
+  -e IMAGE_CACHE_DIR=/var/www/studio101/cache \
+  -e "SPRING_DATASOURCE_URL=jdbc:postgresql://studio101.ge:5432/s1?currentSchema=public&charSet=UTF8" \
+  -e SPRING_DATASOURCE_USERNAME=postgres \
+  -e SPRING_DATASOURCE_PASSWORD=saadmin \
+  -e SERVER_SSL_ENABLED=true \
+  -e SERVER_SSL_KEY_STORE=/app/keystore.p12 \
+  -e SERVER_SSL_KEY_STORE_PASSWORD=123456 \
+  -e SERVER_SSL_KEY_STORE_TYPE=PKCS12 \
+  -p 4444:4444 \
+  --restart always \
+  --name s1service \
+  s1service:v1
+```
+
+* To run in production, set the `IMAGE_CACHE_DIR` environment variable to `/var/www/studio101/cache` and mount a volume at that same path using the `-v` flag. This ensures cached images are written to the correct directory inside the container and persisted on the host.
+* For local development, if the `IMAGE_CACHE_DIR` environment variable is not set, the application will default to using `/var/tmp/s1/` for caching.
+
 
 
 #### `docker logs -f s1service`
