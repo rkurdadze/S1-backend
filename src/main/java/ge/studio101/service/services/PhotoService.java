@@ -1,5 +1,6 @@
 package ge.studio101.service.services;
 
+import ge.studio101.service.dto.PhotoAdminDTO;
 import ge.studio101.service.dto.PhotoDTO;
 import ge.studio101.service.dto.PhotoNewDTO;
 import ge.studio101.service.helpers.ImageRoutines;
@@ -30,6 +31,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Base64;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -91,6 +93,30 @@ public class PhotoService {
         }
     }
 
+    public List<PhotoAdminDTO> findPhotosByItemAndColor(Long itemId, Long colorId) {
+        if (itemId == null || colorId == null) {
+            return List.of();
+        }
+        Color color = colorRepository.findById(colorId)
+                .filter(found -> found.getItem() != null && itemId.equals(found.getItem().getId()))
+                .orElseThrow(() -> new EntityNotFoundException("Цвет не найден для itemId=" + itemId));
+        return photoRepository.findByColor_Id(color.getId()).stream()
+                .map(photo -> {
+                    PhotoAdminDTO dto = new PhotoAdminDTO();
+                    dto.setId(photo.getId());
+                    dto.setName("photo-" + photo.getId() + ".jpg");
+                    try {
+                        dto.setImage(Base64.getEncoder().encodeToString(
+                                getPhotoBinary(photo.getId(), "400")
+                        ));
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                    return dto;
+                })
+                .collect(Collectors.toList());
+    }
+
     public byte[] getPhotoBinary(Long id, String resolution) throws IOException {
         String resolutionId = resolution != null ? resolution : "1024";
         Path resolutionCachePath = cachePath.resolve(resolutionId);
@@ -135,7 +161,6 @@ public class PhotoService {
 
         return processedImageBytes;
     }
-
 
     private byte[] resizeAndCompressImage(byte[] imageBytes, int maxWidth, int maxHeight, float quality) throws IOException {
         ByteArrayInputStream bais = new ByteArrayInputStream(imageBytes);
@@ -235,9 +260,12 @@ public class PhotoService {
     }
 
 
-    public void delete(Long id) {
+    public boolean delete(Long id) {
         Photo photo = photoRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Фото с ID " + id + " не найдено"));
+                .orElse(null);
+        if (photo == null) {
+            return false;
+        }
 
         try {
             photoRepository.delete(photo);
@@ -258,6 +286,7 @@ public class PhotoService {
         } catch (Exception e) {
             throw new RuntimeException("Ошибка при удалении фото: " + e.getMessage(), e);
         }
+        return true;
     }
 
 }

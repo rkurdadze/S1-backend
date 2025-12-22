@@ -21,5 +21,8 @@ public class JwtService {
                 .withExpiresAt(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24)) // 1 день
                 .sign(Algorithm.HMAC256(secretKey));
     }
-}
 
+    public String getSecretKey() {
+        return secretKey;
+    }
+}

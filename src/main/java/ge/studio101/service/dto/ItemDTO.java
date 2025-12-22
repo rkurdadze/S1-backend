@@ -13,4 +13,5 @@ public class ItemDTO {
     private boolean publish;
     private BigDecimal price;
     private List<ColorDTO> colors;
+    private List<String> tags;
 }

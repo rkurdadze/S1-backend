@@ -53,6 +53,7 @@ public class OrderService {
                 .paymentToken(payload.getPaymentToken())
                 .emailNotification(Boolean.TRUE.equals(payload.getEmailNotification()))
                 .createdAt(OffsetDateTime.now())
+                .status("Создан")
                 .build();
 
         List<OrderItem> items = payload.getItems().stream()
@@ -62,6 +63,13 @@ public class OrderService {
         order.setItems(items);
 
         CustomerOrder saved = orderRepository.save(order);
+        if (saved.getOrderNumber() == null) {
+            saved.setOrderNumber("#S1-" + saved.getId());
+        }
+        if (saved.getStatus() == null) {
+            saved.setStatus("Создан");
+        }
+        orderRepository.save(saved);
         orderItemRepository.saveAll(items);
 
         triggerEmail(saved);

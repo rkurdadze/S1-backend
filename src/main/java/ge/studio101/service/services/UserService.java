@@ -36,6 +36,12 @@ public class UserService {
                         Optional<UserRole> defaultRole = roleRepository.findById(3L);
                         defaultRole.ifPresent(newUser::setRole);
                     }
+                    if (newUser.getStatus() == null) {
+                        newUser.setStatus("Активен");
+                    }
+                    if (newUser.getLastActive() == null) {
+                        newUser.setLastActive(java.time.OffsetDateTime.now());
+                    }
 
                     return userRepository.save(newUser);
                 });
@@ -73,4 +79,3 @@ public class UserService {
         return null;
     }
 }
-

@@ -13,7 +13,7 @@ This repository currently has no other AGENTS files; these instructions apply to
 - Application properties: `src/main/resources/application.properties`.
 - Tests: `src/test/java/ge/studio101/service/S1ServiceApplicationTests.java`.
 
-## Schema Summary (migrations `V1__Initial_schema.sql`, `V2__Orders_and_pricing.sql`, `V3__Share_links.sql`)
+## Schema Summary (migrations `V1__Initial_schema.sql`, `V2__Orders_and_pricing.sql`, `V3__Share_links.sql`, `V4__Admin_content.sql`)
 - Sequences: `color_id_seq`, `inventory_id_seq`, `item_id_seq`, `photo_id_seq`, `size_id_seq`, `user_role_id_seq`, `users_id_seq`.
 - Tables:
   - `item`: `id` (PK, seq), `name` (varchar 200, not null), `description` (varchar 1000), `publish` (boolean, default true), `price` (numeric(12,2) not null, default 0).
@@ -22,16 +22,28 @@ This repository currently has no other AGENTS files; these instructions apply to
   - `inventory`: `id` (PK, seq), `stock_count` (int, default 0), `color_id` (FK -> colors cascade), `size_id` (FK -> size, nullable).
   - `photo`: `id` (PK, seq), `image` (bytea, not null), `color_id` (FK -> colors cascade).
   - `user_role`: `id` (PK, seq), `name` (varchar 50, not null); seeded with Administrator (1), Manager (2), User (3) and sequence synced to max(id).
-  - `users`: `id` (bigint PK, seq), `google_id` (unique, not null), `email` (unique, not null), `name` (nullable), `picture` (text), `role_id` (FK -> user_role, default 3), `image` (bytea).
-  - `orders`: `id` (bigserial PK), `user_id` (FK -> users), embedded contact columns (`contact_*`), `delivery_option` (varchar 120), `notes` (varchar 1000), `total` (numeric(12,2) not null), `payment_token` (text), `email_notification` (boolean, default false), `created_at` (timestamptz, default now).
+  - `users`: `id` (bigint PK, seq), `google_id` (unique, not null), `email` (unique, not null), `name` (nullable), `picture` (text), `role_id` (FK -> user_role, default 3), `image` (bytea), `status` (varchar 50), `last_active` (timestamptz).
+  - `orders`: `id` (bigserial PK), `user_id` (FK -> users), embedded contact columns (`contact_*`), `delivery_option` (varchar 120), `delivery_window` (varchar 120), `notes` (varchar 1000), `total` (numeric(12,2) not null), `payment_token` (text), `order_number` (varchar 50), `status` (varchar 50), `email_notification` (boolean, default false), `created_at` (timestamptz, default now).
   - `order_items`: `id` (bigserial PK), `order_id` (FK -> orders cascade), `item_id` (FK -> item), `color_id` (FK -> colors), `size_id` (FK -> size), `item_name`/`color_name`/`size_name` (varchar), `quantity` (int not null), `price` (numeric(12,2) not null).
   - `share_link`: `token` (varchar(36) PK), `platform`/`destination` (varchar 50), `caption`/`url`/`images`/`description` (text), `color_name` (varchar 100), `item_name` (varchar 200), `price` (numeric(12,2)), `item_id` (bigint), `created_at`/`expires_at` (timestamptz), `click_count` (bigint, default 0).
+  - `tag`: `id` (bigserial PK), `name` (varchar 100, unique).
+  - `item_tag`: `item_id` (FK -> item), `tag_id` (FK -> tag), composite PK.
+  - `category`: `id` (bigserial PK), `title` (varchar 200), `description` (text), `highlight` (varchar 200), `items_count` (int).
+  - `news`: `id` (bigserial PK), `title` (varchar 200), `date` (varchar 100), `summary` (text), `image` (text).
+  - `collection`: `id` (bigserial PK), `title` (varchar 200), `tag` (varchar 100), `description` (text), `image` (text), `anchor` (varchar 120).
+  - `editorial`: `id` (bigserial PK), `title` (varchar 200), `summary` (text), `image` (text), `cta` (varchar 200).
+  - `promotion`: `id` (bigserial PK), `name` (varchar 200), `scope` (varchar 200), `discount` (varchar 50), `period` (varchar 120), `status` (varchar 50).
+  - `delivery_zone`: `id` (bigserial PK), `zone` (varchar 200), `price` (varchar 50), `eta` (varchar 120), `notes` (text).
+  - `newsletter_draft`: `id` (bigserial PK), `subject` (text), `message` (text), `updated_at` (timestamptz).
+  - `newsletter_segment`: `id` (bigserial PK), `name` (varchar 200), `description` (text), `count` (int).
+  - `newsletter_send`: `id` (bigserial PK), `subject` (text), `message` (text), `sent_at` (timestamptz), `recipients` (varchar 50).
+  - `newsletter_send_segment`: `send_id` (FK -> newsletter_send), `segment_id` (FK -> newsletter_segment), composite PK.
 
 ## File Structure Reference
 All tracked project files (excluding Git metadata) as of this snapshot:
 - Root: `Dockerfile`, `docker-compose.yml`, `pom.xml`, `HELP.md`, certificates/keys (`cert.pem`, `key.pem`, `keystore.p12`), Maven wrappers (`mvnw`, `mvnw.cmd`), `.gitignore`, `AGENTS.md`.
 - `src/main/java/ge/studio101/service/`: application entry and package directories `configurations/`, `controllers/`, `dto/`, `helpers/`, `mappers/`, `models/`, `repositories/`, `services/`.
-- `src/main/resources/`: `application.properties`, `db/migration/V1__Initial_schema.sql`.
+- `src/main/resources/`: `application.properties`, `db/migration/V1__Initial_schema.sql`, `V2__Orders_and_pricing.sql`, `V3__Share_links.sql`, `V4__Admin_content.sql`.
 - `src/test/java/ge/studio101/service/`: `S1ServiceApplicationTests.java`.
 
 ## Requirements for Future Changes

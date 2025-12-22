@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.OffsetDateTime;
+
 @Entity
 @Getter
 @Setter
@@ -27,9 +29,14 @@ public class UserEntity {
     @Column(name = "image")
     private byte[] image;
 
+    @Column(name = "status", length = 50)
+    private String status;
+
+    @Column(name = "last_active")
+    private OffsetDateTime lastActive;
+
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "role_id", referencedColumnName = "id")
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private UserRole role;
 }
-

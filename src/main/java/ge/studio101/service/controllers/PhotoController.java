@@ -1,26 +1,35 @@
 package ge.studio101.service.controllers;
 
+import ge.studio101.service.dto.PhotoAdminDTO;
 import ge.studio101.service.dto.PhotoDTO;
 import ge.studio101.service.dto.PhotoNewDTO;
-import ge.studio101.service.models.Photo;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import ge.studio101.service.services.PhotoService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.MediaType;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 
 import java.io.IOException;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/photos")
+@RequestMapping("/api/v1")
 @RequiredArgsConstructor
+@Tag(name = "Photos", description = "Операции с фото")
 public class PhotoController {
     private final PhotoService photoService;
 
-    @GetMapping
+    @GetMapping("/photos")
+    @Operation(summary = "Получить список фото")
+    @ApiResponse(responseCode = "200", description = "Список фото")
     public ResponseEntity<List<PhotoDTO>> getAllPhotos() {
         return ResponseEntity.ok(photoService.findAll());
     }
@@ -29,7 +38,12 @@ public class PhotoController {
      * Возвращает «сырые» байты изображения c корректным Content-Type,
      * определённым на основе первых байт (signature).
      */
-    @GetMapping({"/{id}", "/{id}/{resolution}"})
+    @GetMapping({"/photos/{id}", "/photos/{id}/{resolution}"})
+    @Operation(summary = "Получить бинарные данные фото")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Бинарное изображение"),
+            @ApiResponse(responseCode = "404", description = "Фото не найдено")
+    })
     public ResponseEntity<?> getPhotoBinary(
             @PathVariable Long id,
             @PathVariable(required = false) String resolution) throws IOException {
@@ -45,16 +59,38 @@ public class PhotoController {
         }
     }
 
-    @PostMapping
+    @PostMapping("/photos")
+    @Operation(summary = "Добавить фото")
+    @ApiResponse(responseCode = "200", description = "Фото добавлены")
+    @SecurityRequirement(name = "bearerAuth")
+    @PreAuthorize("hasAnyRole('ADMINISTRATOR','MANAGER')")
     public ResponseEntity<List<PhotoDTO>> addPhotos(@RequestBody List<PhotoNewDTO> photoNewDTOList) {
         List<PhotoDTO> savedPhotos = photoService.saveAll(photoNewDTOList);
         return ResponseEntity.ok(savedPhotos);
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/photos/{id}")
+    @Operation(summary = "Удалить фото")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Фото удалено"),
+            @ApiResponse(responseCode = "404", description = "Фото не найдено")
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @PreAuthorize("hasAnyRole('ADMINISTRATOR','MANAGER')")
     public ResponseEntity<Void> deletePhoto(@PathVariable Long id) {
-        photoService.delete(id);
-        return ResponseEntity.noContent().build();
+        boolean deleted = photoService.delete(id);
+        return deleted ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
+    }
+
+    @GetMapping("/items/{itemId}/colors/{colorId}/photos")
+    @Operation(summary = "Получить фото по товару и цвету")
+    @ApiResponse(responseCode = "200", description = "Список фото по цвету")
+    @SecurityRequirement(name = "bearerAuth")
+    @PreAuthorize("hasAnyRole('ADMINISTRATOR','MANAGER')")
+    public ResponseEntity<List<PhotoAdminDTO>> getPhotosByItemAndColor(
+            @PathVariable Long itemId,
+            @PathVariable Long colorId) {
+        return ResponseEntity.ok(photoService.findPhotosByItemAndColor(itemId, colorId));
     }
 
 

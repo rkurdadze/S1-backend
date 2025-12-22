@@ -6,5 +6,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface PhotoRepository extends JpaRepository<Photo, Long> {
+    java.util.List<Photo> findByColor_Id(Long colorId);
 }
-

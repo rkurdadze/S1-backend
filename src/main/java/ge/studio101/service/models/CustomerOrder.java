@@ -32,6 +32,9 @@ public class CustomerOrder {
     @Column(name = "delivery_option", length = 120)
     private String deliveryOption;
 
+    @Column(name = "delivery_window", length = 120)
+    private String deliveryWindow;
+
     @Column(name = "notes", length = 1000)
     private String notes;
 
@@ -40,6 +43,12 @@ public class CustomerOrder {
 
     @Column(name = "payment_token", columnDefinition = "TEXT")
     private String paymentToken;
+
+    @Column(name = "order_number", length = 50)
+    private String orderNumber;
+
+    @Column(name = "status", length = 50)
+    private String status;
 
     @Column(name = "email_notification")
     private boolean emailNotification;

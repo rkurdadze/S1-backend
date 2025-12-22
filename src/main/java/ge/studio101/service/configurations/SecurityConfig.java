@@ -6,6 +6,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
@@ -17,22 +19,30 @@ import java.io.IOException;
 import java.util.List;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import ge.studio101.service.repositories.UserRepository;
+import ge.studio101.service.services.JwtService;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 public class SecurityConfig {
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, UserRepository userRepository,
+                                                   JwtService jwtService) throws Exception {
         http
                 .csrf(csrf -> csrf.disable()) // Disable CSRF
                 .cors(cors -> cors.configurationSource(corsConfigurationSource())) // Enable CORS
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/google").permitAll() // Allow Google Auth
-                        .requestMatchers("/api/v1/**").permitAll() // Allow all API requests
+                        .requestMatchers("/api/v1/auth/**").permitAll() // Allow Google Auth
+                        .requestMatchers(HttpMethod.GET, "/api/v1/admin/**").permitAll()
+                        .requestMatchers("/api/v1/admin/**").hasAnyRole("ADMINISTRATOR", "MANAGER")
+                        .requestMatchers("/api/v1/**").permitAll() // Allow all other API requests
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-resources/**", "/webjars/**").permitAll() // Allow Swagger UI
                         .anyRequest().authenticated() // Require authentication for all other requests
                 )
+                .addFilterBefore(new JwtAuthenticationFilter(userRepository, jwtService.getSecretKey()),
+                        UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(new RequestLoggingFilter(), UsernamePasswordAuthenticationFilter.class); // Add logging filter
 
         return http.build();
