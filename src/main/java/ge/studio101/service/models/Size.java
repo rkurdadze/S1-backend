@@ -27,5 +27,6 @@ public class Size {
     private String name;
 
     @OneToMany(mappedBy = "size", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
     private List<Inventory> inventories = new ArrayList<>();
 }

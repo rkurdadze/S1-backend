@@ -34,10 +34,12 @@ public class Color {
 
     @OneToMany(mappedBy = "color", cascade = CascadeType.ALL, orphanRemoval = true)
     @org.hibernate.annotations.BatchSize(size = 20)
+    @Builder.Default
     private List<Inventory> inventories = new ArrayList<>();
 
     @OneToMany(mappedBy = "color", cascade = CascadeType.ALL, orphanRemoval = true)
     @org.hibernate.annotations.BatchSize(size = 20)
+    @Builder.Default
     private List<Photo> photos = new ArrayList<>();
 }
 

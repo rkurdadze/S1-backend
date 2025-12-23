@@ -90,8 +90,16 @@ public class ItemService {
         if (item.getPrice() == null) {
             item.setPrice(java.math.BigDecimal.ZERO);
         }
-        applyTags(item, itemNewDTO.getTags());
+        
+        // 1. Save item first to get an ID
         Item savedItem = itemRepository.save(item);
+        
+        // 2. Apply tags (now item has an ID)
+        applyTags(savedItem, itemNewDTO.getTags());
+        
+        // 3. Save again with tags
+        savedItem = itemRepository.save(savedItem);
+        
         return itemMapper.toDTO(savedItem);
     }
 
@@ -128,6 +136,9 @@ public class ItemService {
 
     private void applyTags(Item item, List<String> tags) {
         Set<ItemTag> resolvedTags = resolveTags(item, tags);
+        if (item.getItemTags() == null) {
+            item.setItemTags(new java.util.HashSet<>());
+        }
         item.getItemTags().clear();
         item.getItemTags().addAll(resolvedTags);
     }

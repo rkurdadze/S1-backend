@@ -42,11 +42,13 @@ public class Item {
     @EqualsAndHashCode.Exclude
     @ToString.Exclude
     @org.hibernate.annotations.BatchSize(size = 20)
+    @Builder.Default
     private Set<Color> colors = new HashSet<>();
 
     @OneToMany(mappedBy = "item", cascade = CascadeType.ALL, orphanRemoval = true)
     @EqualsAndHashCode.Exclude
     @ToString.Exclude
     @org.hibernate.annotations.BatchSize(size = 20)
+    @Builder.Default
     private Set<ItemTag> itemTags = new HashSet<>();
 }
