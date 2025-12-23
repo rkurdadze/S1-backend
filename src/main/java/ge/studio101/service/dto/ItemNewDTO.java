@@ -11,4 +11,5 @@ public class ItemNewDTO {
     private String description;
     private boolean publish;
     private BigDecimal price;
+    private List<String> tags;
 }

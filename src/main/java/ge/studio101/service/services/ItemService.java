@@ -4,7 +4,11 @@ import ge.studio101.service.dto.ItemDTO;
 import ge.studio101.service.dto.ItemNewDTO;
 import ge.studio101.service.mappers.ItemMapper;
 import ge.studio101.service.models.Item;
+import ge.studio101.service.models.ItemTag;
+import ge.studio101.service.models.ItemTagId;
+import ge.studio101.service.models.Tag;
 import ge.studio101.service.repositories.ItemRepository;
+import ge.studio101.service.repositories.TagRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +19,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @EnableAsync(mode = AdviceMode.ASPECTJ)
 @Service
@@ -28,6 +34,9 @@ public class ItemService {
 
     @Autowired
     private final ItemMapper itemMapper;
+
+    @Autowired
+    private final TagRepository tagRepository;
 
     public List<ItemDTO> findAll() {
         List<Item> items = itemRepository.findAll();
@@ -47,6 +56,7 @@ public class ItemService {
         if (item.getPrice() == null) {
             item.setPrice(java.math.BigDecimal.ZERO);
         }
+        applyTags(item, itemNewDTO.getTags());
         Item savedItem = itemRepository.save(item);
         return itemMapper.toDTO(savedItem);
     }
@@ -61,7 +71,8 @@ public class ItemService {
             existingItem.setName(itemNewDTO.getName());
             existingItem.setDescription(itemNewDTO.getDescription());
             existingItem.setPublish(itemNewDTO.isPublish());
-            existingItem.setPrice(itemNewDTO.getPrice());
+            existingItem.setPrice(itemNewDTO.getPrice() != null ? itemNewDTO.getPrice() : java.math.BigDecimal.ZERO);
+            applyTags(existingItem, itemNewDTO.getTags());
             // Сохраняем обновленный элемент
             Item updatedItem = itemRepository.save(existingItem);
 
@@ -80,5 +91,32 @@ public class ItemService {
         }
         return false;
     }
-}
 
+    private void applyTags(Item item, List<String> tags) {
+        Set<ItemTag> resolvedTags = resolveTags(item, tags);
+        item.getItemTags().clear();
+        item.getItemTags().addAll(resolvedTags);
+    }
+
+    private Set<ItemTag> resolveTags(Item item, List<String> tags) {
+        if (tags == null) {
+            return Set.of();
+        }
+        return tags.stream()
+                .filter(tag -> tag != null && !tag.isBlank())
+                .map(String::trim)
+                .distinct()
+                .map(this::resolveTag)
+                .map(tag -> createItemTag(item, tag))
+                .collect(Collectors.toSet());
+    }
+
+    private Tag resolveTag(String name) {
+        return tagRepository.findByNameIgnoreCase(name)
+                .orElseGet(() -> tagRepository.save(new Tag(null, name, new java.util.HashSet<>())));
+    }
+
+    private ItemTag createItemTag(Item item, Tag tag) {
+        return new ItemTag(new ItemTagId(item.getId(), tag.getId()), item, tag);
+    }
+}

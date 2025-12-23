@@ -54,7 +54,7 @@ public class AdminContentService {
         }
         String trimmed = tag.trim();
         tagRepository.findByNameIgnoreCase(trimmed)
-                .orElseGet(() -> tagRepository.save(new Tag(null, trimmed)));
+                .orElseGet(() -> tagRepository.save(new Tag(null, trimmed, new java.util.HashSet<>())));
     }
 
     @Transactional
@@ -67,7 +67,8 @@ public class AdminContentService {
             return false;
         }
         Tag stored = tag.get();
-        itemRepository.findAll().forEach(item -> item.getTags().remove(stored));
+        itemRepository.findAll()
+                .forEach(item -> item.getItemTags().removeIf(itemTag -> stored.equals(itemTag.getTag())));
         tagRepository.delete(stored);
         return true;
     }
@@ -76,7 +77,9 @@ public class AdminContentService {
     public List<String> getItemTags(Long itemId) {
         Item item = itemRepository.findById(itemId)
                 .orElseThrow(() -> new EntityNotFoundException("Товар не найден: " + itemId));
-        return item.getTags().stream()
+        return item.getItemTags().stream()
+                .map(ItemTag::getTag)
+                .filter(Objects::nonNull)
                 .map(Tag::getName)
                 .sorted()
                 .toList();
@@ -95,7 +98,8 @@ public class AdminContentService {
                 .distinct()
                 .map(this::resolveTag)
                 .collect(Collectors.toSet());
-        item.setTags(tags);
+        item.getItemTags().clear();
+        tags.forEach(tag -> item.getItemTags().add(new ItemTag(new ItemTagId(item.getId(), tag.getId()), item, tag)));
         itemRepository.save(item);
         return tags.stream()
                 .map(Tag::getName)
@@ -105,7 +109,7 @@ public class AdminContentService {
 
     private Tag resolveTag(String name) {
         return tagRepository.findByNameIgnoreCase(name)
-                .orElseGet(() -> tagRepository.save(new Tag(null, name)));
+                .orElseGet(() -> tagRepository.save(new Tag(null, name, new java.util.HashSet<>())));
     }
 
     public List<AdminCategoryDTO> getCategories() {
