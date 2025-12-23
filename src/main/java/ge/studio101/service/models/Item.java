@@ -41,10 +41,12 @@ public class Item {
     @OneToMany(mappedBy = "item", cascade = CascadeType.ALL, orphanRemoval = true)
     @EqualsAndHashCode.Exclude
     @ToString.Exclude
-    private List<Color> colors = new ArrayList<>();
+    @org.hibernate.annotations.BatchSize(size = 20)
+    private Set<Color> colors = new HashSet<>();
 
     @OneToMany(mappedBy = "item", cascade = CascadeType.ALL, orphanRemoval = true)
     @EqualsAndHashCode.Exclude
     @ToString.Exclude
+    @org.hibernate.annotations.BatchSize(size = 20)
     private Set<ItemTag> itemTags = new HashSet<>();
 }

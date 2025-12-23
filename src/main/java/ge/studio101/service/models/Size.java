@@ -15,6 +15,7 @@ import java.util.List;
 @Data
 @Entity
 @Builder
+@org.hibernate.annotations.BatchSize(size = 20)
 @Table(name = "size")
 public class Size {
 

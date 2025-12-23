@@ -8,6 +8,7 @@ import ge.studio101.service.models.ItemTag;
 import ge.studio101.service.models.ItemTagId;
 import ge.studio101.service.models.Tag;
 import ge.studio101.service.repositories.ItemRepository;
+import ge.studio101.service.repositories.PhotoRepository;
 import ge.studio101.service.repositories.TagRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,24 +30,57 @@ import java.util.stream.Collectors;
 @Transactional
 public class ItemService {
 
-    @Autowired
     private final ItemRepository itemRepository;
-
-    @Autowired
+    private final PhotoRepository photoRepository;
     private final ItemMapper itemMapper;
-
-    @Autowired
     private final TagRepository tagRepository;
 
+    @Transactional(readOnly = true)
     public List<ItemDTO> findAll() {
-        List<Item> items = itemRepository.findAll();
-        return itemMapper.toDTOList(items);
+        List<Item> items = itemRepository.findAll().stream()
+                .distinct()
+                .toList();
+        List<ItemDTO> itemDTOs = itemMapper.toDTOList(items);
+        populatePhotoIds(itemDTOs);
+        return itemDTOs;
     }
 
+    @Transactional(readOnly = true)
     public ItemDTO findById(Long id) {
-        return itemRepository.findById(id)
+        ItemDTO itemDTO = itemRepository.findById(id)
                 .map(itemMapper::toDTO)
                 .orElse(null);
+        
+        if (itemDTO != null) {
+            populatePhotoIds(List.of(itemDTO));
+        }
+        return itemDTO;
+    }
+
+    private void populatePhotoIds(List<ItemDTO> itemDTOs) {
+        List<Long> colorIds = itemDTOs.stream()
+                .filter(dto -> dto.getColors() != null)
+                .flatMap(dto -> dto.getColors().stream())
+                .map(ge.studio101.service.dto.ColorDTO::getId)
+                .distinct()
+                .toList();
+
+        if (colorIds.isEmpty()) return;
+
+        var photoProjections = photoRepository.findIdsByColorIdIn(colorIds);
+        var photoIdsByColor = photoProjections.stream()
+                .collect(Collectors.groupingBy(
+                        ge.studio101.service.dto.PhotoIdProjection::getColorId,
+                        Collectors.mapping(ge.studio101.service.dto.PhotoIdProjection::getId, Collectors.toList())
+                ));
+
+        itemDTOs.forEach(itemDTO -> {
+            if (itemDTO.getColors() != null) {
+                itemDTO.getColors().forEach(colorDTO -> {
+                    colorDTO.setPhotoIds(photoIdsByColor.getOrDefault(colorDTO.getId(), List.of()));
+                });
+            }
+        });
     }
 
 

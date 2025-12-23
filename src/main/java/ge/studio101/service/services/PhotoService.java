@@ -117,6 +117,7 @@ public class PhotoService {
                 .collect(Collectors.toList());
     }
 
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public byte[] getPhotoBinary(Long id, String resolution) throws IOException {
         String resolutionId = resolution != null ? resolution : "1024";
         Path resolutionCachePath = cachePath.resolve(resolutionId);
@@ -125,7 +126,7 @@ public class PhotoService {
 
         if (Files.exists(cachedImagePath)) {
             try {
-                log.info("hit: {}", cachedImagePath.getFileName());
+//                log.info("hit: {}", cachedImagePath.getFileName());
                 return Files.readAllBytes(cachedImagePath);
             } catch (IOException e) {
             }

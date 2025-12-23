@@ -15,12 +15,7 @@ import java.util.stream.Collectors;
 public interface ColorMapper {
     ColorMapper INSTANCE = Mappers.getMapper(ColorMapper.class);
 
-    @Mapping(target = "photoIds", source = "photos", qualifiedByName = "mapPhotoIds") // ✅ Исправлен source = "photos"
-    @Mapping(target = "inventories", source = "inventories") // ✅ MapStruct автоматически мапит Inventory -> InventoryDTO
+    @Mapping(target = "photoIds", ignore = true)
+    @Mapping(target = "inventories", source = "inventories") 
     ColorDTO toDTO(Color color);
-
-    @Named("mapPhotoIds")
-    default List<Long> mapPhotoIds(List<ge.studio101.service.models.Photo> photos) {
-        return photos != null ? photos.stream().map(ge.studio101.service.models.Photo::getId).collect(Collectors.toList()) : null;
-    }
 }
