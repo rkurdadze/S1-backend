@@ -12,12 +12,12 @@ import ge.studio101.service.repositories.PhotoRepository;
 import ge.studio101.service.repositories.TagRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.AdviceMode;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -137,7 +137,7 @@ public class ItemService {
     private void applyTags(Item item, List<String> tags) {
         Set<ItemTag> resolvedTags = resolveTags(item, tags);
         if (item.getItemTags() == null) {
-            item.setItemTags(new java.util.HashSet<>());
+            item.setItemTags(new HashSet<>());
         }
         item.getItemTags().clear();
         item.getItemTags().addAll(resolvedTags);
@@ -158,7 +158,7 @@ public class ItemService {
 
     private Tag resolveTag(String name) {
         return tagRepository.findByNameIgnoreCase(name)
-                .orElseGet(() -> tagRepository.save(new Tag(null, name, new java.util.HashSet<>())));
+                .orElseGet(() -> tagRepository.save(new Tag(null, name, new HashSet<>(), new HashSet<>())));
     }
 
     private ItemTag createItemTag(Item item, Tag tag) {

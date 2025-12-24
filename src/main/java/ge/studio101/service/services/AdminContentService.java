@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
@@ -54,7 +55,7 @@ public class AdminContentService {
         }
         String trimmed = tag.trim();
         tagRepository.findByNameIgnoreCase(trimmed)
-                .orElseGet(() -> tagRepository.save(new Tag(null, trimmed, new java.util.HashSet<>())));
+                .orElseGet(() -> tagRepository.save(new Tag(null, trimmed, new HashSet<>(), new HashSet<>())));
     }
 
     @Transactional
@@ -109,7 +110,7 @@ public class AdminContentService {
 
     private Tag resolveTag(String name) {
         return tagRepository.findByNameIgnoreCase(name)
-                .orElseGet(() -> tagRepository.save(new Tag(null, name, new java.util.HashSet<>())));
+                .orElseGet(() -> tagRepository.save(new Tag(null, name, new HashSet<>(), new HashSet<>())));
     }
 
     public List<AdminCategoryDTO> getCategories() {
@@ -122,6 +123,9 @@ public class AdminContentService {
     @Transactional
     public AdminCategoryDTO createCategory(AdminCategoryDTO dto) {
         Category entity = new Category();
+        entity.setTitle(dto.getTitle());
+        // Save first to generate ID (if needed by JPA, though for ManyToMany often not strictly required if cascade works right, but safer)
+        entity = categoryRepository.save(entity);
         applyCategory(dto, entity);
         return toCategoryDto(categoryRepository.save(entity));
     }
@@ -152,6 +156,18 @@ public class AdminContentService {
         target.setDescription(source.getDescription());
         target.setHighlight(source.getHighlight());
         target.setItemsCount(source.getItems() != null ? source.getItems() : 0);
+
+        if (source.getTags() != null) {
+            Set<Tag> tags = source.getTags().stream()
+                    .filter(Objects::nonNull)
+                    .map(String::trim)
+                    .filter(tag -> !tag.isBlank())
+                    .distinct()
+                    .map(this::resolveTag)
+                    .collect(Collectors.toSet());
+            
+            target.setTags(tags);
+        }
     }
 
     private AdminCategoryDTO toCategoryDto(Category entity) {
@@ -161,6 +177,10 @@ public class AdminContentService {
         dto.setDescription(entity.getDescription());
         dto.setHighlight(entity.getHighlight());
         dto.setItems(entity.getItemsCount());
+        dto.setTags(entity.getTags().stream()
+                .map(Tag::getName)
+                .sorted()
+                .toList());
         return dto;
     }
 

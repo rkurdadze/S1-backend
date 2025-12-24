@@ -29,4 +29,9 @@ public class Tag {
     @EqualsAndHashCode.Exclude
     @ToString.Exclude
     private Set<ItemTag> itemTags = new HashSet<>();
+
+    @ManyToMany(mappedBy = "tags")
+    @EqualsAndHashCode.Exclude
+    @ToString.Exclude
+    private Set<Category> categories = new HashSet<>();
 }

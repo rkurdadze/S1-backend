@@ -3,7 +3,12 @@ package ge.studio101.service.models;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
+
+import java.util.HashSet;
+import java.util.Set;
 
 @Data
 @Entity
@@ -26,4 +31,15 @@ public class Category {
 
     @Column(name = "items_count", nullable = false)
     private Integer itemsCount = 0;
+
+    @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    @JoinTable(
+            name = "category_tag",
+            joinColumns = @JoinColumn(name = "category_id"),
+            inverseJoinColumns = @JoinColumn(name = "tag_id")
+    )
+    @EqualsAndHashCode.Exclude
+    @ToString.Exclude
+    @org.hibernate.annotations.BatchSize(size = 20)
+    private Set<Tag> tags = new HashSet<>();
 }
