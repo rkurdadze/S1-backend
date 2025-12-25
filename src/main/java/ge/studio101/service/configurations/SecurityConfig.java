@@ -35,8 +35,13 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource())) // Enable CORS
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/v1/auth/**").permitAll() // Allow Google Auth
+
                         .requestMatchers(HttpMethod.GET, "/api/v1/admin/**").permitAll()
                         .requestMatchers("/api/v1/admin/**").hasAnyRole("ADMINISTRATOR", "MANAGER")
+
+                        .requestMatchers(HttpMethod.GET, "/api/v1/delivery/**").permitAll()
+                        .requestMatchers("/api/v1/delivery/**").hasAnyRole("ADMINISTRATOR", "MANAGER")
+
                         .requestMatchers("/api/v1/**").permitAll() // Allow all other API requests
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-resources/**", "/webjars/**").permitAll() // Allow Swagger UI
                         .anyRequest().authenticated() // Require authentication for all other requests

@@ -3,19 +3,33 @@ package ge.studio101.service.controllers;
 import ge.studio101.service.delivery.DeliveryProvider;
 import ge.studio101.service.delivery.DeliveryService;
 import ge.studio101.service.delivery.DeliveryServiceFactory;
+import ge.studio101.service.dto.AdminDeliverySettingsDTO;
 import ge.studio101.service.dto.delivery.*;
+import ge.studio101.service.services.AdminContentService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/delivery")
+@RequestMapping("/api/v1/delivery")
 @RequiredArgsConstructor
 public class DeliveryController {
 
     private final DeliveryServiceFactory deliveryServiceFactory;
+
+    private final AdminContentService adminContentService;
+
+    @GetMapping("/settings")
+    @Operation(summary = "Получить настройки доставки")
+    @ApiResponse(responseCode = "200", description = "Настройки доставки")
+    public ResponseEntity<AdminDeliverySettingsDTO.Response> getDeliverySettings() {
+        return ResponseEntity.ok(adminContentService.getDeliverySettings());
+    }
 
     @GetMapping("/regions")
     public List<RegionDTO> getRegions(@RequestParam(value = "provider", required = false) String provider) {

@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -60,9 +61,9 @@ public class OrderService {
                 .status("Создан")
                 .build();
 
-        List<OrderItem> items = payload.getItems().stream()
+        List<OrderItem> items = new ArrayList<>(payload.getItems().stream()
                 .map(itemDto -> toOrderItem(itemDto, order))
-                .toList();
+                .toList());
 
         order.setItems(items);
 
@@ -136,13 +137,30 @@ public class OrderService {
         if (dto == null) {
             return null;
         }
+        String fullName = dto.getFullName();
+        if ((fullName == null || fullName.isBlank()) && dto.getFirstName() != null) {
+            fullName = dto.getFirstName() + (dto.getLastName() != null ? " " + dto.getLastName() : "");
+        }
+
+        String addressLine = dto.getAddressLine();
+        if ((addressLine == null || addressLine.isBlank()) && dto.getAddressLine1() != null) {
+            addressLine = dto.getAddressLine1() + (dto.getAddressLine2() != null && !dto.getAddressLine2().isBlank() ? ", " + dto.getAddressLine2() : "");
+        }
+
         return new CustomerContact(
-                dto.getFullName(),
+                dto.getFirstName(),
+                dto.getLastName(),
+                fullName,
                 dto.getPhone(),
                 dto.getEmail(),
-                dto.getAddressLine(),
+                addressLine,
+                dto.getAddressLine1(),
+                dto.getAddressLine2(),
                 dto.getCity(),
-                dto.getPostalCode()
+                dto.getPostalCode(),
+                dto.getMunicipality(),
+                dto.getRegion(),
+                dto.getCountry()
         );
     }
 

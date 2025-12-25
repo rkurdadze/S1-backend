@@ -13,4 +13,5 @@ public class CartItemDTO {
     private Integer quantity;
     private BigDecimal price;
     private Long photoId;
+    private ItemDTO item;
 }
