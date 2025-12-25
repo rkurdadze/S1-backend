@@ -388,6 +388,24 @@ public class AdminContentController {
         return ResponseEntity.ok(adminContentService.sendNewsletter(request));
     }
 
+    @GetMapping("/delivery/settings")
+    @Operation(summary = "Получить настройки доставки")
+    @ApiResponse(responseCode = "200", description = "Настройки доставки")
+    @PreAuthorize("permitAll()")
+    public ResponseEntity<AdminDeliverySettingsDTO.Response> getDeliverySettings() {
+        // log.info("GET /api/v1/admin/delivery/settings called"); // We don't have SLF4J here usually, but let's check imports.
+        // AdminContentController has @RequiredArgsConstructor but maybe not @Slf4j.
+        // Let's check imports first.
+        return ResponseEntity.ok(adminContentService.getDeliverySettings());
+    }
+
+    @PutMapping("/delivery/settings")
+    @Operation(summary = "Обновить настройки доставки")
+    @ApiResponse(responseCode = "200", description = "Настройки обновлены")
+    public ResponseEntity<AdminDeliverySettingsDTO.Response> updateDeliverySettings(@RequestBody AdminDeliverySettingsDTO.UpdateRequest request) {
+        return ResponseEntity.ok(adminContentService.updateDeliverySettings(request));
+    }
+
     @GetMapping("/delivery-zones")
     @Operation(summary = "Получить зоны доставки")
     @ApiResponse(responseCode = "200", description = "Список зон доставки")

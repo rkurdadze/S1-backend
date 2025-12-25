@@ -10,6 +10,7 @@ public class OrderPayload {
     private List<CartItemDTO> items;
     private ContactInfoDTO contact;
     private String deliveryOption;
+    private String deliveryProvider;
     private String notes;
     private BigDecimal total;
     private String paymentToken;

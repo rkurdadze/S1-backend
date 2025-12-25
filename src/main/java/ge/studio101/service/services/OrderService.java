@@ -1,11 +1,13 @@
 package ge.studio101.service.services;
 
+import ge.studio101.service.delivery.DeliveryProvider;
 import ge.studio101.service.dto.CartItemDTO;
 import ge.studio101.service.dto.ContactInfoDTO;
 import ge.studio101.service.dto.OrderPayload;
 import ge.studio101.service.dto.OrderResponseDTO;
 import ge.studio101.service.models.*;
 import ge.studio101.service.repositories.*;
+import ge.studio101.service.services.delivery.DeliveryOrderService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,6 +32,7 @@ public class OrderService {
     private final UserRepository userRepository;
     private final GooglePayService googlePayService;
     private final Optional<EmailNotificationService> emailNotificationService;
+    private final DeliveryOrderService deliveryOrderService;
 
     @Transactional
     public OrderResponseDTO createOrder(OrderPayload payload) {
@@ -48,6 +51,7 @@ public class OrderService {
                 .userId(resolveUserId(payload.getUserId()))
                 .contact(mapContact(payload.getContact()))
                 .deliveryOption(payload.getDeliveryOption())
+                .deliveryProvider(resolveProvider(payload.getDeliveryProvider()))
                 .notes(payload.getNotes())
                 .total(calculatedTotal)
                 .paymentToken(payload.getPaymentToken())
@@ -70,6 +74,14 @@ public class OrderService {
             saved.setStatus("Создан");
         }
         orderRepository.save(saved);
+        deliveryOrderService.createDeliveryOrder(saved)
+                .ifPresent(info -> {
+                    saved.setTrackingCode(info.getTrackingCode());
+                    saved.setTrackingUuid(info.getUuid());
+                    saved.setDeliveryStatus(info.getCurrentStatus());
+                    saved.setDeliveryLabelUrl(info.getLabelUrl());
+                    orderRepository.save(saved);
+                });
         orderItemRepository.saveAll(items);
 
         triggerEmail(saved);
@@ -178,6 +190,18 @@ public class OrderService {
                     log.warn("Ошибка при отправке подтверждения: {}", ex.getMessage());
                 }
             });
+        }
+    }
+
+    private DeliveryProvider resolveProvider(String provider) {
+        if (provider == null || provider.isBlank()) {
+            return DeliveryProvider.INTERNAL;
+        }
+        try {
+            return DeliveryProvider.valueOf(provider);
+        } catch (IllegalArgumentException ex) {
+            log.warn("Неизвестный провайдер доставки {}, используем INTERNAL", provider);
+            return DeliveryProvider.INTERNAL;
         }
     }
 }

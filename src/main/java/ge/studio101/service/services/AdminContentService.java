@@ -1,5 +1,6 @@
 package ge.studio101.service.services;
 
+import ge.studio101.service.delivery.trackings.TrackingsGeProperties;
 import ge.studio101.service.dto.*;
 import ge.studio101.service.models.*;
 import ge.studio101.service.repositories.*;
@@ -7,10 +8,13 @@ import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -41,6 +45,44 @@ public class AdminContentService {
     private final NewsletterSegmentRepository newsletterSegmentRepository;
     private final NewsletterSendRepository newsletterSendRepository;
     private final DeliveryZoneRepository deliveryZoneRepository;
+    private final TrackingsGeProperties trackingsGeProperties;
+    private final DeliveryServiceSettingRepository deliveryServiceSettingRepository;
+
+        public AdminDeliverySettingsDTO.Response getDeliverySettings() {
+            log.info("Запрос настроек доставки");
+            try {
+                List<AdminDeliverySettingsDTO.ServiceSetting> settings = deliveryServiceSettingRepository.findAll().stream()
+                        .map(s -> AdminDeliverySettingsDTO.ServiceSetting.builder()
+                                .service(s.getService())
+                                .enabled(s.isEnabled())
+                                .label(s.getLabel())
+                                .build())
+                        .toList();
+                log.info("Найдено {} настроек доставки", settings.size());
+                return new AdminDeliverySettingsDTO.Response(settings);
+            } catch (Exception e) {
+                log.error("Ошибка при получении настроек доставки", e);
+                throw e;
+            }
+        }
+    
+        @Transactional    public AdminDeliverySettingsDTO.Response updateDeliverySettings(AdminDeliverySettingsDTO.UpdateRequest request) {
+        if (request == null || request.getServices() == null) {
+            return getDeliverySettings();
+        }
+
+        for (AdminDeliverySettingsDTO.ServiceSetting dto : request.getServices()) {
+            deliveryServiceSettingRepository.findById(dto.getService()).ifPresent(entity -> {
+                entity.setEnabled(dto.isEnabled());
+                // label обычно не меняем через PUT, если это не предусмотрено спецификацией, но можно добавить
+                if (dto.getLabel() != null) {
+                    entity.setLabel(dto.getLabel());
+                }
+                deliveryServiceSettingRepository.save(entity);
+            });
+        }
+        return getDeliverySettings();
+    }
 
     public List<String> getTags() {
         return tagRepository.findAll().stream()

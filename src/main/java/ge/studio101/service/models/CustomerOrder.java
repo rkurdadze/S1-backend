@@ -1,5 +1,6 @@
 package ge.studio101.service.models;
 
+import ge.studio101.service.delivery.DeliveryProvider;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -34,6 +35,28 @@ public class CustomerOrder {
 
     @Column(name = "delivery_window", length = 120)
     private String deliveryWindow;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "delivery_provider", length = 50)
+    private DeliveryProvider deliveryProvider;
+
+    @Column(name = "tracking_uuid", length = 36)
+    private String trackingUuid;
+
+    @Column(name = "tracking_code", length = 50)
+    private String trackingCode;
+
+    @Column(name = "delivery_status", length = 50)
+    private String deliveryStatus;
+
+    @Column(name = "delivery_label_url", columnDefinition = "TEXT")
+    private String deliveryLabelUrl;
+
+    @Column(name = "sender_delivery_external_id", length = 120)
+    private String senderDeliveryExternalId;
+
+    @Column(name = "receiver_delivery_external_id", length = 120)
+    private String receiverDeliveryExternalId;
 
     @Column(name = "notes", length = 1000)
     private String notes;
